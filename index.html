@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KhoHC – Quản Lý Kho Hành Chính</title>
+  <meta name="description" content="Hệ thống quản lý kho xuất nhập tồn dành cho phòng Hành Chính. Tra cứu tồn kho, tạo phiếu xuất kho và in PDF tự động." />
+
+  <!-- Favicon (SVG inline) -->
+  <link rel="icon" type="image/svg+xml" href="Logo.svg" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" />
+
+  <!-- Tailwind CSS (via CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { green: '#1C695B', orange: '#FCAF17' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     LOADING OVERLAY
+══════════════════════════════════════════════════════════ -->
+<div id="loadingOverlay" class="hidden">
+  <div class="overlay-card">
+    <div class="overlay-spinner"></div>
+    <div class="overlay-title">Đang tạo phiếu PDF...</div>
+    <div class="overlay-sub">Vui lòng đợi 3–5 giây</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TOAST CONTAINER
+══════════════════════════════════════════════════════════ -->
+<div id="toastContainer"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SETTINGS MODAL
+══════════════════════════════════════════════════════════ -->
+<div id="settingsModal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="modal-box">
+    <h2 class="modal-title" id="settingsTitle">
+      <span class="material-icons-round" style="color:var(--brand-green)">settings</span>
+      Cấu hình hệ thống
+    </h2>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="form-group">
+        <label class="form-label" for="cfgApiUrl">GAS Web App URL</label>
+        <input id="cfgApiUrl" type="url" class="form-input" placeholder="https://script.google.com/macros/s/.../exec" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="cfgApiKey">API Key</label>
+        <input id="cfgApiKey" type="password" class="form-input" placeholder="YOUR_SECRET_API_KEY_HERE" />
+      </div>
+      <p style="font-size:12px;color:var(--text-tertiary);line-height:1.5;">
+        Cấu hình được lưu tại <strong>localStorage</strong> của trình duyệt. Không chia sẻ API Key.
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <button id="btnCloseSettings" class="btn btn-ghost">Hủy</button>
+      <button id="btnSaveSettings" class="btn btn-primary">
+        <span class="material-icons-round" style="font-size:18px">save</span>
+        Lưu cấu hình
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── TOPBAR ──────────────────────────────────────────── -->
+  <header class="topbar" role="banner">
+    <a href="#" class="topbar-logo" aria-label="Trang chủ KhoHC">
+      <img src="Logo.svg" alt="Logo công ty" id="logoImg" />
+      <div>
+        <div class="topbar-logo-text">KhoHC</div>
+        <div class="topbar-logo-sub">Quản lý kho hành chính</div>
+      </div>
+    </a>
+
+    <div id="statusPill" class="status-pill loading-pill" role="status" aria-live="polite">
+      <span class="status-dot"></span>
+      <span id="statusText">Đang kết nối…</span>
+    </div>
+
+    <div class="topbar-actions">
+      <button id="btnRefresh" class="icon-btn" title="Làm mới dữ liệu" aria-label="Làm mới">
+        <span class="material-icons-round" style="font-size:20px">refresh</span>
+      </button>
+      <button id="btnSettings" class="icon-btn" title="Cấu hình" aria-label="Cài đặt">
+        <span class="material-icons-round" style="font-size:20px">settings</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── MAIN LAYOUT ────────────────────────────────────── -->
+  <div class="main-wrapper">
+
+    <!-- ── SIDEBAR ──────────────────────────────────────── -->
+    <aside class="sidebar" role="navigation" aria-label="Menu chính">
+      <button class="nav-item active" data-page="inventory" id="navInventory">
+        <span class="material-icons-round nav-icon">inventory_2</span>
+        Tồn kho
+        <span class="nav-badge" id="inventoryCount">0</span>
+      </button>
+      <button class="nav-item" data-page="stockout" id="navStockOut">
+        <span class="material-icons-round nav-icon">output</span>
+        Xuất kho
+      </button>
+      <button class="nav-item" data-page="stockin" id="navStockIn">
+        <span class="material-icons-round nav-icon">input</span>
+        Nhập kho
+      </button>
+      <button class="nav-item" data-page="history" id="navHistory">
+        <span class="material-icons-round nav-icon">receipt_long</span>
+        Lịch sử giao dịch
+      </button>
+
+      <!-- Summary stats sidebar card -->
+      <div class="sidebar-card" aria-label="Thống kê tồn kho">
+        <div class="sidebar-card-title">Tổng quan kho</div>
+        <div class="stat-row">
+          <span class="stat-label">Tổng mặt hàng</span>
+          <span class="stat-value ok" id="statTotal">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Sắp hết hàng</span>
+          <span class="stat-value warn" id="statLow">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Hết hàng</span>
+          <span class="stat-value" style="color:#FF3B30" id="statOut">—</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── CONTENT AREA ──────────────────────────────────── -->
+    <main class="content-area" role="main">
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: INVENTORY
+      ════════════════════════════════════════════════ -->
+      <section id="pageInventory" aria-label="Danh sách tồn kho">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">📦 Tồn kho</h1>
+            <p class="page-subtitle">Danh sách vật tư và số lượng hiện có trong kho.</p>
+          </div>
+          <button class="btn btn-primary" id="btnGoStockOut">
+            <span class="material-icons-round" style="font-size:18px">output</span>
+            Tạo phiếu xuất kho
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Danh sách vật tư</span>
+            <div class="search-bar" style="width:260px;">
+              <span class="material-icons-round search-icon">search</span>
+              <input type="search" id="inventorySearch" placeholder="Tìm mặt hàng…" aria-label="Tìm kiếm mặt hàng" />
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table id="inventoryTable" aria-label="Bảng tồn kho">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Tên vật tư</th>
+                  <th>Đơn vị</th>
+                  <th>Tồn kho</th>
+                  <th>Định mức tối thiểu</th>
+                  <th>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryBody">
+                <tr>
+                  <td colspan="6">
+                    <div class="empty-state">
+                      <div class="empty-icon">📋</div>
+                      <div class="empty-title">Đang tải dữ liệu…</div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: STOCK OUT
+      ════════════════════════════════════════════════ -->
+      <section id="pageStockOut" class="hidden" aria-label="Phiếu xuất kho">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">📤 Xuất kho</h1>
+            <p class="page-subtitle">Lập phiếu xuất vật tư và tự động tạo PDF.</p>
+          </div>
+          <button class="btn btn-ghost" id="btnBackFromOut">
+            <span class="material-icons-round" style="font-size:18px">arrow_back</span>
+            Quay lại
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Thông tin phiếu xuất</span>
+          </div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:18px;">
+
+            <div class="form-group">
+              <label class="form-label" for="outRecipient">Người nhận <span style="color:#FF3B30">*</span></label>
+              <input id="outRecipient" type="text" class="form-input" placeholder="Họ tên người nhận vật tư" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="outNote">Ghi chú / Lý do xuất kho</label>
+              <input id="outNote" type="text" class="form-input" placeholder="Ví dụ: Sửa chữa phòng A3, sự kiện tháng 4…" />
+            </div>
+
+            <!-- Item Rows -->
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <label class="form-label" style="margin:0">Danh sách vật tư xuất <span style="color:#FF3B30">*</span></label>
+                <button class="btn btn-secondary btn-sm" id="btnAddRow">
+                  <span class="material-icons-round" style="font-size:16px">add</span>
+                  Thêm dòng
+                </button>
+              </div>
+              <div id="itemRows"></div>
+            </div>
+
+            <!-- PDF Result -->
+            <div id="pdfResultCard" role="region" aria-label="Kết quả tạo PDF">
+              <div class="pdf-icon">📄</div>
+              <div>
+                <div class="pdf-info-title" id="pdfTransId">Phiếu XK-...</div>
+                <div class="pdf-info-sub">File PDF đã được tạo và lưu trên Google Drive.</div>
+                <div class="pdf-actions">
+                  <a id="pdfOpenLink" href="#" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+                    <span class="material-icons-round" style="font-size:16px">open_in_new</span>
+                    Mở PDF
+                  </a>
+                  <button class="btn btn-ghost btn-sm" id="btnNewTransaction">
+                    <span class="material-icons-round" style="font-size:16px">add</span>
+                    Tạo phiếu mới
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <div style="display:flex;gap:12px;justify-content:flex-end;padding-top:8px;">
+              <button class="btn btn-ghost" id="btnResetOut">Làm mới form</button>
+              <button class="btn btn-orange" id="btnSubmitOut" id="btnSubmitStockOut">
+                <div class="spinner" id="spinnerOut"></div>
+                <span class="material-icons-round btn-text" style="font-size:18px">picture_as_pdf</span>
+                <span class="btn-text">Xác nhận & Tạo PDF</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: STOCK IN
+      ════════════════════════════════════════════════ -->
+      <section id="pageStockIn" class="hidden" aria-label="Phiếu nhập kho">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">📥 Nhập kho</h1>
+            <p class="page-subtitle">Cập nhật tồn kho khi nhập hàng mới.</p>
+          </div>
+          <button class="btn btn-ghost" id="btnBackFromIn">
+            <span class="material-icons-round" style="font-size:18px">arrow_back</span>
+            Quay lại
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Thông tin phiếu nhập</span>
+          </div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:18px;">
+
+            <div class="form-group">
+              <label class="form-label" for="inSupplier">Nhà cung cấp / Nguồn hàng</label>
+              <input id="inSupplier" type="text" class="form-input" placeholder="Tên nhà cung cấp hoặc nguồn nhập hàng" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="inNote">Ghi chú</label>
+              <input id="inNote" type="text" class="form-input" placeholder="Số hóa đơn, lô hàng…" />
+            </div>
+
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <label class="form-label" style="margin:0">Danh sách vật tư nhập <span style="color:#FF3B30">*</span></label>
+                <button class="btn btn-secondary btn-sm" id="btnAddRowIn">
+                  <span class="material-icons-round" style="font-size:16px">add</span>
+                  Thêm dòng
+                </button>
+              </div>
+              <div id="itemRowsIn"></div>
+            </div>
+
+            <div style="display:flex;gap:12px;justify-content:flex-end;padding-top:8px;">
+              <button class="btn btn-ghost" id="btnResetIn">Làm mới form</button>
+              <button class="btn btn-primary" id="btnSubmitIn">
+                <div class="spinner" id="spinnerIn"></div>
+                <span class="material-icons-round btn-text" style="font-size:18px">save</span>
+                <span class="btn-text">Xác nhận nhập kho</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: HISTORY
+      ════════════════════════════════════════════════ -->
+      <section id="pageHistory" class="hidden" aria-label="Lịch sử giao dịch">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">🧾 Lịch sử giao dịch</h1>
+            <p class="page-subtitle">50 giao dịch gần nhất từ hệ thống.</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btnRefreshHistory">
+            <span class="material-icons-round" style="font-size:16px">refresh</span>
+            Làm mới
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="table-wrapper">
+            <table id="historyTable" aria-label="Bảng lịch sử giao dịch">
+              <thead>
+                <tr>
+                  <th>Mã phiếu</th>
+                  <th>Thời gian</th>
+                  <th>Loại</th>
+                  <th>Người nhận / NCC</th>
+                  <th>Tổng SL</th>
+                  <th>File PDF</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody">
+                <tr>
+                  <td colspan="6">
+                    <div class="empty-state">
+                      <div class="empty-icon">📋</div>
+                      <div class="empty-title">Nhấn "Làm mới" để tải lịch sử</div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div><!-- /main-wrapper -->
+</div><!-- /app -->
+
+<!-- ── SCRIPTS ──────────────────────────────────────────────── -->
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1C695B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0F3D35;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background Shape -->
+  <rect width="512" height="512" rx="100" fill="url(#bgGrad)"/>
+  
+  <!-- Stylized Car Body -->
+  <path d="M140 320 L140 280 Q140 240 180 240 L332 240 Q372 240 372 280 L372 320 Z" fill="#FFFFFF" />
+  <path d="M180 240 L210 180 Q220 160 250 160 L262 160 Q292 160 302 180 L332 240 Z" fill="#FFFFFF" opacity="0.9" />
+  
+  <!-- Wrench Accent (Maintenance) -->
+  <path d="M380 340 L440 400" stroke="#FCAF17" stroke-width="35" stroke-linecap="round" />
+  <circle cx="445" cy="405" r="35" fill="none" stroke="#FCAF17" stroke-width="25" />
+  <rect x="435" y="380" width="20" height="30" fill="#1C695B" transform="rotate(45 445 405)" />
+
+  <!-- Wheels -->
+  <circle cx="190" cy="320" r="25" fill="#FCAF17" />
+  <circle cx="320" cy="320" r="25" fill="#FCAF17" />
+  
+  <!-- Search Highlight -->
+  <circle cx="256" cy="256" r="140" stroke="#FCAF17" stroke-width="12" opacity="0.3" fill="none" />
+</svg>
