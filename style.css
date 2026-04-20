@@ -96,6 +96,10 @@ body::after {
 /* ── APP SHELL ──────────────────────────────────────────────── */
 #app { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
 
+@media (max-width: 900px) {
+  #app { padding-bottom: 70px; } /* Space for mobile nav */
+}
+
 /* ── TOPBAR ─────────────────────────────────────────────────── */
 .topbar {
   position: sticky;
@@ -163,12 +167,48 @@ body::after {
   .main-wrapper { grid-template-columns: 1fr; padding: 16px; gap: 16px; }
 }
 
-/* ── SIDEBAR ────────────────────────────────────────────────── */
+/* ── SIDEBAR (Desktop) ──────────────────────────────────────── */
 .sidebar {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+}
+
+/* ── MOBILE NAV (Bottom Bar) ────────────────────────────────── */
+.mobile-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0; z-index: 500;
+  height: calc(64px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--border);
+  display: none;
+  justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.05);
+}
+@media (max-width: 900px) {
+  .mobile-nav { display: flex; }
+}
+.mobile-nav-item {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  background: transparent; border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 8px 0;
+}
+.mobile-nav-item span:first-child { font-size: 24px; }
+.mobile-nav-item span:last-child { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.mobile-nav-item.active { color: var(--brand-green); }
+.mobile-nav-item.active span:first-child { transform: translateY(-2px); text-shadow: 0 4px 8px rgba(28,105,91,0.2); }
+
 .nav-item {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 16px;
@@ -320,23 +360,57 @@ tbody td { padding: 12px 14px; font-size: 14px; color: var(--text); }
 .form-input.error { border-color: #FF3B30; box-shadow: 0 0 0 3px rgba(255,59,48,0.1); }
 
 /* ── ITEM ROWS ──────────────────────────────────────────────── */
-#itemRows { display: flex; flex-direction: column; gap: 10px; }
+#itemRows, #itemRowsIn { display: flex; flex-direction: column; gap: 12px; }
 .item-row {
   display: grid;
-  grid-template-columns: 1fr 160px 80px 38px;
-  gap: 8px;
+  grid-template-columns: 1.5fr 1fr 100px 44px;
+  gap: 10px;
   align-items: center;
-  background: var(--bg);
-  border: 1.5px solid var(--border);
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 12px;
+  padding: 14px;
   transition: var(--spring);
   position: relative;
+  box-shadow: var(--shadow-sm);
 }
-.item-row:focus-within { border-color: var(--brand-green); background: rgba(28,105,91,0.03); }
-@media (max-width: 600px) {
-  .item-row { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
-  .item-row .remove-btn { grid-column: 2; grid-row: 1; justify-self: end; }
+.item-row:focus-within { border-color: var(--brand-green); box-shadow: var(--shadow-md); }
+
+@media (max-width: 768px) {
+  .item-row {
+    grid-template-columns: 1fr 100px 44px;
+    grid-template-rows: auto auto;
+    padding: 12px;
+  }
+  .item-row .autocomplete-wrap {
+    grid-column: 1 / -1;
+  }
+  .item-row .item-unit-select {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .item-row .item-qty-input {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .item-row .remove-btn {
+    grid-column: 3;
+    grid-row: 2;
+  }
+}
+@media (max-width: 480px) {
+  .item-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .item-row .remove-btn {
+    position: absolute;
+    top: -10px; right: -10px;
+    width: 28px; height: 28px;
+    box-shadow: var(--shadow-sm);
+  }
 }
 .remove-btn {
   width: 34px; height: 34px; border-radius: 9px;
