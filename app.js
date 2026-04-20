@@ -455,20 +455,26 @@ const pages = ['inventory', 'stockout', 'stockin', 'history'];
 
 function navigateTo(page) {
   state.currentPage = page;
+  
+  // Hide all sections, show the active one
   pages.forEach(p => {
     const section = $(`page${p.charAt(0).toUpperCase() + p.slice(1)}`);
-    const nav     = $(`nav${p.charAt(0).toUpperCase() + p.slice(1)}`);
     if (section) section.classList.toggle('hidden', p !== page);
-    if (nav)     nav.classList.toggle('active', p !== page ? false : true);
   });
 
-  // Fix nav IDs
+  // Update Sidebar (Desktop)
   ['Inventory', 'StockOut', 'StockIn', 'History'].forEach(name => {
     const nav = $(`nav${name}`);
     if (nav) nav.classList.remove('active');
   });
-  const activeNav = $(`nav${page.charAt(0).toUpperCase() + page.slice(1)}`);
-  if (activeNav) activeNav.classList.add('active');
+  const activeSidebarNav = $(`nav${page.charAt(0).toUpperCase() + page.slice(1)}`);
+  if (activeSidebarNav) activeSidebarNav.classList.add('active');
+
+  // Update Mobile Nav (Bottom Bar)
+  const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
+  mobileNavItems.forEach(item => {
+    item.classList.toggle('active', item.dataset.page === page);
+  });
 
   if (page === 'history') loadHistory();
 }
@@ -624,11 +630,22 @@ function saveSettings() {
 // ── EVENT LISTENERS ───────────────────────────────────────────
 
 function initEventListeners() {
-  // Nav
+  // Sidebar Nav (Desktop)
   $('navInventory')?.addEventListener('click', () => navigateTo('inventory'));
   $('navStockOut')?.addEventListener('click',  () => { navigateTo('stockout'); resetFormOut(); });
   $('navStockIn')?.addEventListener('click',   () => { navigateTo('stockin');  resetFormIn();  });
   $('navHistory')?.addEventListener('click',   () => navigateTo('history'));
+
+  // Mobile Bottom Nav
+  document.querySelectorAll('.mobile-nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const page = item.dataset.page;
+      navigateTo(page);
+      if (page === 'stockout') resetFormOut();
+      if (page === 'stockin') resetFormIn();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
 
   // Shortcut buttons
   $('btnGoStockOut')?.addEventListener('click',    () => { navigateTo('stockout'); resetFormOut(); });
@@ -675,6 +692,7 @@ function initEventListeners() {
 
 async function init() {
   initEventListeners();
+  navigateTo('inventory'); // Sync initial UI state
 
   // Show settings modal if not configured
   if (!CONFIG.apiUrl) {
