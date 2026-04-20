@@ -258,6 +258,11 @@ function createItemRow(mode = 'out') {
   const id       = ++rowIdCounter;
   const containerId = mode === 'out' ? 'itemRows' : 'itemRowsIn';
   const container   = $(containerId);
+  
+  if (!container) {
+    console.error(`Container ${containerId} not found!`);
+    return;
+  }
 
   const row = document.createElement('div');
   row.className = 'item-row';
@@ -456,18 +461,34 @@ const pages = ['inventory', 'stockout', 'stockin', 'history'];
 function navigateTo(page) {
   state.currentPage = page;
   
+  // Map page names to exact DOM IDs (matching index.html)
+  const pageMap = {
+    'inventory': 'pageInventory',
+    'stockout':  'pageStockOut',
+    'stockin':   'pageStockIn',
+    'history':   'pageHistory'
+  };
+
   // Hide all sections, show the active one
-  pages.forEach(p => {
-    const section = $(`page${p.charAt(0).toUpperCase() + p.slice(1)}`);
-    if (section) section.classList.toggle('hidden', p !== page);
+  Object.values(pageMap).forEach(id => {
+    const section = $(id);
+    if (section) section.classList.toggle('hidden', id !== pageMap[page]);
   });
 
   // Update Sidebar (Desktop)
-  ['Inventory', 'StockOut', 'StockIn', 'History'].forEach(name => {
-    const nav = $(`nav${name}`);
+  const sidebarMap = {
+    'inventory': 'navInventory',
+    'stockout':  'navStockOut',
+    'stockin':   'navStockIn',
+    'history':   'navHistory'
+  };
+  
+  Object.values(sidebarMap).forEach(id => {
+    const nav = $(id);
     if (nav) nav.classList.remove('active');
   });
-  const activeSidebarNav = $(`nav${page.charAt(0).toUpperCase() + page.slice(1)}`);
+  
+  const activeSidebarNav = $(sidebarMap[page]);
   if (activeSidebarNav) activeSidebarNav.classList.add('active');
 
   // Update Mobile Nav (Bottom Bar)
