@@ -17,6 +17,9 @@
   <!-- Material Icons -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" />
 
+  <!-- Html5-Qrcode Library (High-speed QR Scanning) -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
   <!-- Tailwind CSS (via CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -44,6 +47,22 @@
     <div class="overlay-spinner"></div>
     <div class="overlay-title">Đang tạo phiếu PDF...</div>
     <div class="overlay-sub">Vui lòng đợi 3–5 giây</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     QR SCANNER MODAL
+══════════════════════════════════════════════════════════ -->
+<div id="qrModal" class="hidden">
+  <div class="qr-container">
+    <div class="qr-header">
+      <div class="qr-title">Quét mã vật tư (QR)</div>
+      <button id="btnCloseQR" class="qr-close-btn">&times;</button>
+    </div>
+    <div id="qrReader"></div>
+    <div class="qr-footer">
+      Đặt mã QR vào giữa khung hình để nhận diện tự động
+    </div>
   </div>
 </div>
 
@@ -261,14 +280,18 @@
               <input id="outNote" type="text" class="form-input" placeholder="Ví dụ: Sửa chữa phòng A3, sự kiện tháng 4…" />
             </div>
 
-            <!-- Item Rows -->
-            <div>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                 <label class="form-label" style="margin:0">Danh sách vật tư xuất <span style="color:#FF3B30">*</span></label>
-                <button class="btn btn-secondary btn-sm" id="btnAddRow">
-                  <span class="material-icons-round" style="font-size:16px">add</span>
-                  Thêm dòng
-                </button>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-orange btn-sm" id="btnScanOut">
+                    <span class="material-icons-round" style="font-size:16px">qr_code_scanner</span>
+                    Quét QR
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btnAddRow">
+                    <span class="material-icons-round" style="font-size:16px">add</span>
+                    Thêm dòng
+                  </button>
+                </div>
               </div>
               <div id="itemRows"></div>
             </div>
@@ -339,10 +362,16 @@
             <div>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                 <label class="form-label" style="margin:0">Danh sách vật tư nhập <span style="color:#FF3B30">*</span></label>
-                <button class="btn btn-secondary btn-sm" id="btnAddRowIn">
-                  <span class="material-icons-round" style="font-size:16px">add</span>
-                  Thêm dòng
-                </button>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-orange btn-sm" id="btnScanIn">
+                    <span class="material-icons-round" style="font-size:16px">qr_code_scanner</span>
+                    Quét QR
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btnAddRowIn">
+                    <span class="material-icons-round" style="font-size:16px">add</span>
+                    Thêm dòng
+                  </button>
+                </div>
               </div>
               <div id="itemRowsIn"></div>
             </div>
