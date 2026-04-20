@@ -18,6 +18,7 @@ const state = {
   currentPage:  'inventory',
   rowCountOut:  0,
   rowCountIn:   0,
+  scanner:      null, // Html5Qrcode instance
 };
 
 // ── DOM REFERENCES ────────────────────────────────────────────
@@ -253,9 +254,10 @@ let rowIdCounter = 0;
 /**
  * Create a new item row for Stock Out or Stock In forms.
  * @param {'out'|'in'} mode
+ * @param {number|null} forcedId - Use a specific ID if provided
  */
-function createItemRow(mode = 'out') {
-  const id       = ++rowIdCounter;
+function createItemRow(mode = 'out', forcedId = null) {
+  const id       = forcedId || ++rowIdCounter;
   const containerId = mode === 'out' ? 'itemRows' : 'itemRowsIn';
   const container   = $(containerId);
   
@@ -417,6 +419,88 @@ function attachAutocomplete(id, mode) {
   });
 
   input.addEventListener('blur', () => setTimeout(hideList, 150));
+}
+
+/**
+ * Handle successful QR scan.
+ * @param {string} decodedText
+ * @param {'out'|'in'} mode
+ */
+function onQrSuccess(decodedText, mode) {
+  const sku = decodedText.trim();
+  const item = state.inventory.find(i => i.sku === sku || i.itemName.toLowerCase().includes(sku.toLowerCase()));
+  
+  if (!item) {
+    showToast(`Không tìm thấy vật tư có mã: ${sku}`, 'warn');
+    return;
+  }
+
+  // Success Feedback
+  if (navigator.vibrate) navigator.vibrate(100);
+  showToast(`Đã nhận diện: ${item.itemName}`, 'success');
+
+  // Add a new row and populate it
+  const id = ++rowIdCounter;
+  const containerId = mode === 'out' ? 'itemRows' : 'itemRowsIn';
+  const container = $(containerId);
+  
+  if (container) {
+    createItemRow(mode, id);
+    const input = $(`itemName-${id}`);
+    const unitSel = $(`itemUnit-${id}`);
+    
+    if (input && unitSel) {
+      input.value = item.itemName;
+      input.dataset.sku = item.sku;
+      unitSel.innerHTML = `<option value="${escapeHtml(item.unit)}">${escapeHtml(item.unit)}</option>`;
+      unitSel.disabled = true;
+      $(`itemQty-${id}`)?.focus();
+    }
+  }
+
+  stopQrScan();
+}
+
+/**
+ * Start QR scanning session.
+ * @param {'out'|'in'} mode
+ */
+async function startQrScan(mode) {
+  const qrContainer = $('qrModal');
+  qrContainer.classList.remove('hidden');
+  
+  try {
+    if (!state.scanner) {
+      state.scanner = new Html5Qrcode("qrReader");
+    }
+
+    const config = { 
+      fps: 30, 
+      qrbox: { width: 250, height: 250 },
+      aspectRatio: 1.0 
+    };
+
+    await state.scanner.start(
+      { facingMode: "environment" }, 
+      config, 
+      (text) => onQrSuccess(text, mode)
+    );
+  } catch (err) {
+    showToast('Không thể mở camera. Vui lòng cấp quyền camera.', 'error');
+    console.error(err);
+    qrContainer.classList.add('hidden');
+  }
+}
+
+async function stopQrScan() {
+  $('qrModal').classList.add('hidden');
+  if (state.scanner && state.scanner.isScanning) {
+    try {
+      await state.scanner.stop();
+    } catch (err) {
+      console.warn('Failed to stop scanner:', err);
+    }
+  }
 }
 
 /**
@@ -677,6 +761,11 @@ function initEventListeners() {
   // Add rows
   $('btnAddRow')?.addEventListener('click',   () => createItemRow('out'));
   $('btnAddRowIn')?.addEventListener('click',  () => createItemRow('in'));
+
+  // QR Scanning
+  $('btnScanOut')?.addEventListener('click',  () => startQrScan('out'));
+  $('btnScanIn')?.addEventListener('click',   () => startQrScan('in'));
+  $('btnCloseQR')?.addEventListener('click',  () => stopQrScan());
 
   // Submit
   $('btnSubmitOut')?.addEventListener('click', handleStockOut);
