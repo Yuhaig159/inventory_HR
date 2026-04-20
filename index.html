@@ -2,11 +2,12 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>KhoHC – Quản Lý Kho Hành Chính</title>
   <meta name="description" content="Hệ thống quản lý kho xuất nhập tồn dành cho phòng Hành Chính. Tra cứu tồn kho, tạo phiếu xuất kho và in PDF tự động." />
+  <meta name="theme-color" content="#1C695B" />
 
-  <!-- Favicon (SVG inline) -->
+  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="Logo.svg" />
 
   <!-- Google Fonts -->
@@ -17,24 +18,10 @@
   <!-- Material Icons -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" />
 
-  <!-- Html5-Qrcode Library (High-speed QR Scanning) -->
+  <!-- Html5-Qrcode Library -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 
-  <!-- Tailwind CSS (via CDN) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: { green: '#1C695B', orange: '#FCAF17' }
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- Custom Styles -->
+  <!-- Master Stylesheet (single source of truth) -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -42,10 +29,10 @@
 <!-- ══════════════════════════════════════════════════════════
      LOADING OVERLAY
 ══════════════════════════════════════════════════════════ -->
-<div id="loadingOverlay" class="hidden">
+<div id="loadingOverlay" class="hidden" role="status" aria-label="Đang xử lý">
   <div class="overlay-card">
     <div class="overlay-spinner"></div>
-    <div class="overlay-title">Đang tạo phiếu PDF...</div>
+    <div class="overlay-title">Đang tạo phiếu PDF…</div>
     <div class="overlay-sub">Vui lòng đợi 3–5 giây</div>
   </div>
 </div>
@@ -53,23 +40,24 @@
 <!-- ══════════════════════════════════════════════════════════
      QR SCANNER MODAL
 ══════════════════════════════════════════════════════════ -->
-<div id="qrModal" class="hidden">
+<div id="qrModal" class="hidden" role="dialog" aria-modal="true" aria-label="Quét mã QR">
   <div class="qr-container">
     <div class="qr-header">
-      <div class="qr-title">Quét mã vật tư (QR)</div>
-      <button id="btnCloseQR" class="qr-close-btn">&times;</button>
+      <span class="qr-title">
+        <span class="material-icons-round" style="font-size:20px;vertical-align:middle;margin-right:6px">qr_code_scanner</span>
+        Quét mã vật tư (QR)
+      </span>
+      <button id="btnCloseQR" class="qr-close-btn" aria-label="Đóng scanner">&#x2715;</button>
     </div>
     <div id="qrReader"></div>
-    <div class="qr-footer">
-      Đặt mã QR vào giữa khung hình để nhận diện tự động
-    </div>
+    <div class="qr-footer">Đặt mã QR vào giữa khung hình để nhận diện tự động</div>
   </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
      TOAST CONTAINER
 ══════════════════════════════════════════════════════════ -->
-<div id="toastContainer"></div>
+<div id="toastContainer" role="region" aria-live="polite" aria-label="Thông báo"></div>
 
 <!-- ══════════════════════════════════════════════════════════
      SETTINGS MODAL
@@ -81,16 +69,18 @@
       Cấu hình hệ thống
     </h2>
 
-    <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;flex-direction:column;gap:16px;">
       <div class="form-group">
         <label class="form-label" for="cfgApiUrl">GAS Web App URL</label>
-        <input id="cfgApiUrl" type="url" class="form-input" placeholder="https://script.google.com/macros/s/.../exec" />
+        <input id="cfgApiUrl" type="url" class="form-input"
+               placeholder="https://script.google.com/macros/s/.../exec" />
       </div>
       <div class="form-group">
         <label class="form-label" for="cfgApiKey">API Key</label>
-        <input id="cfgApiKey" type="password" class="form-input" placeholder="YOUR_SECRET_API_KEY_HERE" />
+        <input id="cfgApiKey" type="password" class="form-input"
+               placeholder="YOUR_SECRET_API_KEY_HERE" />
       </div>
-      <p style="font-size:12px;color:var(--text-tertiary);line-height:1.5;">
+      <p style="font-size:12px;color:var(--text-tertiary);line-height:1.6;">
         Cấu hình được lưu tại <strong>localStorage</strong> của trình duyệt. Không chia sẻ API Key.
       </p>
     </div>
@@ -98,7 +88,7 @@
     <div class="modal-footer">
       <button id="btnCloseSettings" class="btn btn-ghost">Hủy</button>
       <button id="btnSaveSettings" class="btn btn-primary">
-        <span class="material-icons-round" style="font-size:18px">save</span>
+        <span class="material-icons-round" style="font-size:17px">save</span>
         Lưu cấu hình
       </button>
     </div>
@@ -112,8 +102,8 @@
 
   <!-- ── TOPBAR ──────────────────────────────────────────── -->
   <header class="topbar" role="banner">
-    <a href="#" class="topbar-logo" aria-label="Trang chủ KhoHC">
-      <img src="Logo.svg" alt="Logo công ty" id="logoImg" />
+    <a href="#" class="topbar-logo" aria-label="KhoHC – Trang chủ">
+      <img src="Logo.svg" alt="Logo KhoHC" id="logoImg" />
       <div>
         <div class="topbar-logo-text">KhoHC</div>
         <div class="topbar-logo-sub">Quản lý kho hành chính</div>
@@ -158,7 +148,7 @@
   <!-- ── MAIN LAYOUT ────────────────────────────────────── -->
   <div class="main-wrapper">
 
-    <!-- ── SIDEBAR ──────────────────────────────────────── -->
+    <!-- ── SIDEBAR (Desktop) ────────────────────────────── -->
     <aside class="sidebar" role="navigation" aria-label="Menu chính">
       <button class="nav-item active" data-page="inventory" id="navInventory">
         <span class="material-icons-round nav-icon">inventory_2</span>
@@ -178,7 +168,7 @@
         Lịch sử giao dịch
       </button>
 
-      <!-- Summary stats sidebar card -->
+      <!-- Sidebar stats card -->
       <div class="sidebar-card" aria-label="Thống kê tồn kho">
         <div class="sidebar-card-title">Tổng quan kho</div>
         <div class="stat-row">
@@ -200,16 +190,17 @@
     <main class="content-area" role="main">
 
       <!-- ════════════════════════════════════════════════
-           PAGE: INVENTORY
+           PAGE: INVENTORY (Tồn kho)
       ════════════════════════════════════════════════ -->
       <section id="pageInventory" aria-label="Danh sách tồn kho">
+
         <div class="page-header">
           <div>
             <h1 class="page-title">📦 Tồn kho</h1>
             <p class="page-subtitle">Danh sách vật tư và số lượng hiện có trong kho.</p>
           </div>
           <button class="btn btn-primary" id="btnGoStockOut">
-            <span class="material-icons-round" style="font-size:18px">output</span>
+            <span class="material-icons-round" style="font-size:17px">output</span>
             Tạo phiếu xuất kho
           </button>
         </div>
@@ -217,9 +208,11 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">Danh sách vật tư</span>
-            <div class="search-bar" style="width:260px;">
+            <div class="search-bar">
               <span class="material-icons-round search-icon">search</span>
-              <input type="search" id="inventorySearch" placeholder="Tìm mặt hàng…" aria-label="Tìm kiếm mặt hàng" />
+              <input type="search" id="inventorySearch"
+                     placeholder="Tìm mặt hàng…"
+                     aria-label="Tìm kiếm mặt hàng" />
             </div>
           </div>
           <div class="table-wrapper">
@@ -247,19 +240,21 @@
             </table>
           </div>
         </div>
+
       </section>
 
       <!-- ════════════════════════════════════════════════
-           PAGE: STOCK OUT
+           PAGE: STOCK OUT (Xuất kho)
       ════════════════════════════════════════════════ -->
       <section id="pageStockOut" class="hidden" aria-label="Phiếu xuất kho">
+
         <div class="page-header">
           <div>
             <h1 class="page-title">📤 Xuất kho</h1>
             <p class="page-subtitle">Lập phiếu xuất vật tư và tự động tạo PDF.</p>
           </div>
           <button class="btn btn-ghost" id="btnBackFromOut">
-            <span class="material-icons-round" style="font-size:18px">arrow_back</span>
+            <span class="material-icons-round" style="font-size:17px">arrow_back</span>
             Quay lại
           </button>
         </div>
@@ -268,27 +263,37 @@
           <div class="card-header">
             <span class="card-title">Thông tin phiếu xuất</span>
           </div>
-          <div class="card-body" style="display:flex;flex-direction:column;gap:18px;">
+          <div class="card-body">
 
-            <div class="form-group">
-              <label class="form-label" for="outRecipient">Người nhận <span style="color:#FF3B30">*</span></label>
-              <input id="outRecipient" type="text" class="form-input" placeholder="Họ tên người nhận vật tư" required />
+            <!-- Header Info -->
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="outRecipient">
+                  Người nhận <span style="color:#FF3B30">*</span>
+                </label>
+                <input id="outRecipient" type="text" class="form-input"
+                       placeholder="Họ tên người nhận vật tư" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="outNote">Ghi chú / Lý do xuất kho</label>
+                <input id="outNote" type="text" class="form-input"
+                       placeholder="Ví dụ: Sửa chữa phòng A3, sự kiện…" />
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="outNote">Ghi chú / Lý do xuất kho</label>
-              <input id="outNote" type="text" class="form-input" placeholder="Ví dụ: Sửa chữa phòng A3, sự kiện tháng 4…" />
-            </div>
-
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                <label class="form-label" style="margin:0">Danh sách vật tư xuất <span style="color:#FF3B30">*</span></label>
-                <div style="display:flex;gap:6px;">
+            <!-- Item list toolbar -->
+            <div class="section-divider">
+              <div class="section-toolbar">
+                <label class="form-label">
+                  Danh sách vật tư xuất <span style="color:#FF3B30">*</span>
+                </label>
+                <div class="section-toolbar-actions">
                   <button class="btn btn-orange btn-sm" id="btnScanOut">
-                    <span class="material-icons-round" style="font-size:16px">qr_code_scanner</span>
+                    <span class="material-icons-round" style="font-size:15px">qr_code_scanner</span>
                     Quét QR
                   </button>
                   <button class="btn btn-secondary btn-sm" id="btnAddRow">
-                    <span class="material-icons-round" style="font-size:16px">add</span>
+                    <span class="material-icons-round" style="font-size:15px">add</span>
                     Thêm dòng
                   </button>
                 </div>
@@ -296,79 +301,90 @@
               <div id="itemRows"></div>
             </div>
 
-            <!-- PDF Result -->
-            <div id="pdfResultCard" role="region" aria-label="Kết quả tạo PDF">
+            <!-- PDF result (hidden until success) -->
+            <div id="pdfResultCard" role="region" aria-label="Kết quả tạo PDF" style="margin-top:20px;">
               <div class="pdf-icon">📄</div>
-              <div>
-                <div class="pdf-info-title" id="pdfTransId">Phiếu XK-...</div>
+              <div style="flex:1;min-width:0;">
+                <div class="pdf-info-title" id="pdfTransId">Phiếu XK-…</div>
                 <div class="pdf-info-sub">File PDF đã được tạo và lưu trên Google Drive.</div>
                 <div class="pdf-actions">
-                  <a id="pdfOpenLink" href="#" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
-                    <span class="material-icons-round" style="font-size:16px">open_in_new</span>
+                  <a id="pdfOpenLink" href="#" target="_blank" rel="noopener"
+                     class="btn btn-primary btn-sm">
+                    <span class="material-icons-round" style="font-size:15px">open_in_new</span>
                     Mở PDF
                   </a>
                   <button class="btn btn-ghost btn-sm" id="btnNewTransaction">
-                    <span class="material-icons-round" style="font-size:16px">add</span>
+                    <span class="material-icons-round" style="font-size:15px">add</span>
                     Tạo phiếu mới
                   </button>
                 </div>
               </div>
             </div>
 
-            <!-- Submit -->
-            <div style="display:flex;gap:12px;justify-content:flex-end;padding-top:8px;">
+            <!-- Footer actions -->
+            <div class="form-footer-actions">
               <button class="btn btn-ghost" id="btnResetOut">Làm mới form</button>
-              <button class="btn btn-orange" id="btnSubmitOut">
+              <button class="btn btn-orange" id="btnSubmitOut" style="min-width:190px;">
                 <div class="spinner" id="spinnerOut"></div>
-                <span class="material-icons-round btn-text" style="font-size:18px">picture_as_pdf</span>
-                <span class="btn-text">Xác nhận & Tạo PDF</span>
+                <span class="material-icons-round btn-text" style="font-size:17px">picture_as_pdf</span>
+                <span class="btn-text">Xác nhận &amp; Tạo PDF</span>
               </button>
             </div>
+
           </div>
         </div>
+
       </section>
 
       <!-- ════════════════════════════════════════════════
-           PAGE: STOCK IN
+           PAGE: STOCK IN (Nhập kho)
       ════════════════════════════════════════════════ -->
       <section id="pageStockIn" class="hidden" aria-label="Phiếu nhập kho">
+
         <div class="page-header">
           <div>
             <h1 class="page-title">📥 Nhập kho</h1>
             <p class="page-subtitle">Cập nhật tồn kho khi nhập hàng mới.</p>
           </div>
           <button class="btn btn-ghost" id="btnBackFromIn">
-            <span class="material-icons-round" style="font-size:18px">arrow_back</span>
+            <span class="material-icons-round" style="font-size:17px">arrow_back</span>
             Quay lại
           </button>
         </div>
 
         <div class="card">
           <div class="card-header">
-            <span class="card-title">Thông tin phiếu nhập</span>
+            <span class="card-title">📝 Thông tin phiếu nhập</span>
           </div>
-          <div class="card-body" style="display:flex;flex-direction:column;gap:18px;">
+          <div class="card-body">
 
-            <div class="form-group">
-              <label class="form-label" for="inSupplier">Nhà cung cấp / Nguồn hàng</label>
-              <input id="inSupplier" type="text" class="form-input" placeholder="Tên nhà cung cấp hoặc nguồn nhập hàng" />
+            <!-- Header Info -->
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="inSupplier">Nhà cung cấp / Nguồn hàng</label>
+                <input id="inSupplier" type="text" class="form-input"
+                       placeholder="Tên NCC hoặc nguồn nhập…" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="inNote">Ghi chú phiếu nhập</label>
+                <input id="inNote" type="text" class="form-input"
+                       placeholder="Số hóa đơn, ghi chú nhanh…" />
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="inNote">Ghi chú</label>
-              <input id="inNote" type="text" class="form-input" placeholder="Số hóa đơn, lô hàng…" />
-            </div>
-
-            <div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                <label class="form-label" style="margin:0">Danh sách vật tư nhập <span style="color:#FF3B30">*</span></label>
-                <div style="display:flex;gap:6px;">
+            <!-- Item list toolbar -->
+            <div class="section-divider">
+              <div class="section-toolbar">
+                <label class="form-label">
+                  Danh sách vật tư nhập <span style="color:#FF3B30">*</span>
+                </label>
+                <div class="section-toolbar-actions">
                   <button class="btn btn-orange btn-sm" id="btnScanIn">
-                    <span class="material-icons-round" style="font-size:16px">qr_code_scanner</span>
+                    <span class="material-icons-round" style="font-size:15px">qr_code_scanner</span>
                     Quét QR
                   </button>
                   <button class="btn btn-secondary btn-sm" id="btnAddRowIn">
-                    <span class="material-icons-round" style="font-size:16px">add</span>
+                    <span class="material-icons-round" style="font-size:15px">add</span>
                     Thêm dòng
                   </button>
                 </div>
@@ -376,29 +392,33 @@
               <div id="itemRowsIn"></div>
             </div>
 
-            <div style="display:flex;gap:12px;justify-content:flex-end;padding-top:8px;">
+            <!-- Footer actions -->
+            <div class="form-footer-actions">
               <button class="btn btn-ghost" id="btnResetIn">Làm mới form</button>
-              <button class="btn btn-primary" id="btnSubmitIn">
+              <button class="btn btn-primary" id="btnSubmitIn" style="min-width:190px;">
                 <div class="spinner" id="spinnerIn"></div>
-                <span class="material-icons-round btn-text" style="font-size:18px">save</span>
+                <span class="material-icons-round btn-text" style="font-size:17px">save</span>
                 <span class="btn-text">Xác nhận nhập kho</span>
               </button>
             </div>
+
           </div>
         </div>
+
       </section>
 
       <!-- ════════════════════════════════════════════════
-           PAGE: HISTORY
+           PAGE: HISTORY (Lịch sử)
       ════════════════════════════════════════════════ -->
       <section id="pageHistory" class="hidden" aria-label="Lịch sử giao dịch">
+
         <div class="page-header">
           <div>
             <h1 class="page-title">🧾 Lịch sử giao dịch</h1>
             <p class="page-subtitle">50 giao dịch gần nhất từ hệ thống.</p>
           </div>
           <button class="btn btn-secondary btn-sm" id="btnRefreshHistory">
-            <span class="material-icons-round" style="font-size:16px">refresh</span>
+            <span class="material-icons-round" style="font-size:15px">refresh</span>
             Làm mới
           </button>
         </div>
@@ -412,7 +432,7 @@
                   <th>Thời gian</th>
                   <th>Loại</th>
                   <th>Người nhận / NCC</th>
-                  <th>Tổng SL</th>
+                  <th style="text-align:center">Tổng SL</th>
                   <th>File PDF</th>
                 </tr>
               </thead>
@@ -429,13 +449,14 @@
             </table>
           </div>
         </div>
+
       </section>
 
     </main>
   </div><!-- /main-wrapper -->
 </div><!-- /app -->
 
-<!-- ── SCRIPTS ──────────────────────────────────────────────── -->
+<!-- ── SCRIPTS ─────────────────────────────────────────────── -->
 <script src="app.js"></script>
 </body>
 </html>
